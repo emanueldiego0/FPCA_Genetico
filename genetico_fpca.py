@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 """
+
+TESTE1: HOUDOUT=5, TAM_POP=3, TAXA=0.02, EPOCHS=100
+
 @author: Emanuel
 """
 #importacoes
@@ -17,9 +20,9 @@ from sklearn.model_selection import train_test_split
 #constantes
 M = 644             #numero de features
 K = 70              #numero maximo de componentes
-HOLDOUT = 10        #rodadas
+HOLDOUT = 5        #rodadas
 TAXA = 0.02         #taxa de probabilidade de mutacao
-TAM_POP = 20        #qtde de individuos da populacao
+TAM_POP = 3        #qtde de individuos da populacao
 EPOCHS = 100        #numero de epocas
 
 
@@ -69,7 +72,7 @@ class Individuo():
     
         n_components = 1
         
-        for i in range(15):
+        for i in range(10):
             
             acc = []
             for j in range(HOLDOUT):
@@ -194,41 +197,50 @@ class AlgoritmoGenetico():
     
     def executar(self, epochs, taxa_mutacao):
         
-        genetico.inicializa_populacao()
+        self.inicializa_populacao()
+        
+        for individuo in self.populacao:
+            individuo.fitness()
+        
+        self.ordena_populacao()
+        self.melhor_solucao = self.populacao[0]
+        #self.lista_solucoes.append(self.melhor_solucao.nota_avaliacao)
+        
+        #self.visualiza_geracao()
     
         #for e in progressbar.progressbar(range(epochs)):
         for e in range(epochs):
             #print("loop1")
-            for i in progressbar.progressbar(genetico.populacao):
+            for i in progressbar.progressbar(self.populacao):
             #for i in genetico.populacao:
                 i.fitness()
                 #print("loop2") 
                 #print("nota: %s" %(str(i.nota)))
-            genetico.ordena_populacao()
-            genetico.melhor_individuo(genetico.populacao[0])
+            self.ordena_populacao()
+            self.melhor_individuo(self.populacao[0])
             print('# Epoca: %s\tFitness Melhor Cromossomo: %s\tFitness Medio: %s' 
-                  %(str(e+1), str(genetico.melhor_solucao.nota), str(genetico.fitness_medio_populacao())))
-            soma_fitness = genetico.soma_fitness()
+                  %(str(e+1), str(self.melhor_solucao.nota), str(self.fitness_medio_populacao())))
+            soma_fitness = self.soma_fitness()
             
             nova_populacao = []
-            for novos in range(0, genetico.tamanho_populacao, 2):
-                pai1 = genetico.seleciona_pai(soma_fitness)
+            for novos in range(0, self.tamanho_populacao, 2):
+                pai1 = self.seleciona_pai(soma_fitness)
                 #print("loop3")    
                 while True:
-                    pai2 = genetico.seleciona_pai(soma_fitness)
+                    pai2 = self.seleciona_pai(soma_fitness)
                     #print('pai1 %s pai2 %s' %(str(pai1), str(pai2)))
                     if(pai1 != pai2):
                         break
                 
-                filhos = genetico.populacao[pai1].crossover(genetico.populacao[pai2])
+                filhos = self.populacao[pai1].crossover(self.populacao[pai2])
                 nova_populacao.append(filhos[0].mutacao(taxa_mutacao))
                 nova_populacao.append(filhos[1].mutacao(taxa_mutacao))
             
-            genetico.populacao = list(nova_populacao)
+            self.populacao = list(nova_populacao)
             
-        genetico.ordena_populacao()
-        genetico.melhor_individuo(genetico.populacao[0])
-        return genetico.melhor_individuo
+        self.ordena_populacao()
+        self.melhor_individuo(self.populacao[0])
+        return self.melhor_individuo
         
 if __name__ == "__main__":
     warnings.filterwarnings('ignore')
