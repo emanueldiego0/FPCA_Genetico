@@ -20,10 +20,10 @@ from sklearn.model_selection import train_test_split
 #constantes
 M = 644             #numero de features
 K = 70              #numero maximo de componentes
-HOLDOUT = 10        #rodadas
+HOLDOUT = 5        #rodadas
 TAXA = 0.01         #taxa de probabilidade de mutacao
-TAM_POP = 10        #qtde de individuos da populacao
-EPOCHS = 100        #numero de epocas
+TAM_POP = 4         #qtde de individuos da populacao
+EPOCHS = 20         #numero de epocas
 
 
 def CarregarYaleFaces():
@@ -37,6 +37,40 @@ def CarregarYaleFaces():
     #print('#Features (m): '+str(images_yale_flatten.shape[1]))
     Y = [f.split('.')[0] for f in files]
     return images_yale_flatten, Y
+
+
+def CarregarAtt():
+    folders = glob.glob("databases/att_faces/*")
+    images_att = []
+    Y = []
+    
+    for f in folders:
+        files = glob.glob(f+"/*")
+        #images = [np.array(imageio.mimread(file))[0] for file in files]
+        images = [cv2.imread(file,-1)[0] for file in files]
+        images_resized = [cv2.resize(image, dsize=(28, 23), interpolation=cv2.INTER_CUBIC) for image in images]
+        #mages_resized = np.array(images_resized)
+        images_flatten = [image.flatten() for image in images_resized]
+        #mages_flatten = np.array(images_flatten)
+        images_att.extend(images_flatten)
+        Y.extend([f] * 10)
+    return np.array(images_att), Y
+    #return folders
+
+
+def CarregarSheffield():
+    folders = glob.glob("databases/sheffield/cropped/*")
+    images_sheffield = []
+    Y = []
+    
+    for f in folders:
+        files = glob.glob(f+"/face/*")
+        images = [cv2.imread(file,-1)[0] for file in files]
+        images_resized = [cv2.resize(image, dsize=(28, 23), interpolation=cv2.INTER_CUBIC) for image in images]
+        images_flatten = [image.flatten() for image in images_resized]
+        images_sheffield.extend(images_flatten)
+        Y.extend([f] * len(files))
+    return np.array(images_sheffield), Y
 
 
 def F_Eigenfaces(X, W, k, R):
@@ -100,6 +134,25 @@ class Individuo():
         self.nota = np.array(acc_geral).mean()
         #print('\n'+str(self.nota))
     
+    def fitness2(self, n_components):
+        
+        acc = []
+        for j in range(HOLDOUT):
+                
+            #amostragem em treino e teste
+            X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.1, random_state= round(time()) + 15 * j)
+                
+            #aplicacao do FPCA
+            X_feig_train, X_feig_test = F_Eigenfaces(X_train, X_test, n_components, self.cromossomo)
+                
+            #avaliar acuracia usando 1-NN
+            clf_1nn = KNeighborsClassifier(n_neighbors=1).fit(X_feig_train, y_train)
+            score = clf_1nn.score(X_feig_test, y_test) * 100
+            acc.append(score)
+    
+        self.nota = np.array(acc).mean()
+        #print('\n'+str(self.nota))
+    
     
     def crossover2(self, outro_individuo):
         
@@ -121,7 +174,7 @@ class Individuo():
         n = 0
         slices = [0]
         while(n < M-1):
-            slice = random.randint(50, 100)
+            slice = random.randint(100, 200)
             n += slice
             slices.append(n)
             
@@ -168,13 +221,14 @@ class Individuo():
 
 
 class AlgoritmoGenetico():
-    def __init__(self, X, Y, tamanho_populacao):
+    def __init__(self, X, Y, K, tamanho_populacao):
         self.tamanho_populacao = tamanho_populacao
         self.populacao = []
         #self.geracao = 0
         self.melhor_solucao = 0
         self.X = X
         self.Y = Y
+        self.K = K
         
     def inicializa_populacao(self):
         for i in range(self.tamanho_populacao):
@@ -221,20 +275,20 @@ class AlgoritmoGenetico():
             #print(len(self.populacao))
             #print("loop1")
             f = []
-            for i in progressbar.progressbar(self.populacao):
-            #for i in genetico.populacao:
-                i.fitness()
+            #for i in progressbar.progressbar(self.populacao):
+            for i in self.populacao:
+                i.fitness2(self.K)
                 f.append(i.nota)
                 #print("loop2") 
                 #print("nota: %s" %(str(i.nota)))
             
-            f = [round(a,2) for a in f]
+            f = [round(a,3) for a in f]
             
             self.ordena_populacao()
             self.melhor_individuo(self.populacao[0])
             
             print('\n# Epoca: %s\tNotas: %s\tFitness Melhor Cromossomo: %s\tFitness Medio: %s' 
-                  %(str(e+1), str(f),str(round(self.melhor_solucao.nota,2)), str(round(self.fitness_medio_populacao(),2))))
+                  %(str(e+1), str(f),str(round(self.melhor_solucao.nota,3)), str(round(self.fitness_medio_populacao(),3))))
             soma_fitness = self.soma_fitness()
             
             #ELITISMO AQUI
@@ -258,11 +312,74 @@ class AlgoritmoGenetico():
             
         self.ordena_populacao()
         self.melhor_individuo(self.populacao[0])
-        return self.melhor_individuo
+        return self.melhor_solucao
+
+#funcoes para a persistencias dos resultados
+def persistir(individuos, filename):
+    f = open(filename,'w')
+    for i in individuos:
+        for g in i.cromossomo:
+            f.write(str(g))
+            f.write(' ')
+        f.write('\n')
+    f.close()
+    
+    
+def ler(filename):
+    vetores = []
+    f = open(filename,'r')
+    strings = f.readlines()
+    
+    for i in strings:
+        vetor_str = i.split(' ')
+        vetor_str.pop(-1)
+        vetor_flt = []
+        for v in vetor_str:
+            vetor_flt.append(float(v))
+        vetores.append(vetor_flt)
         
+    return vetores
+
+#funcao main        
 if __name__ == "__main__":
     warnings.filterwarnings('ignore')
+    K = [1,5,10,15,20,25,30,35,40,45,50,55,60,65,70]
     
+    #experimento base: Yale Faces
     X, Y = CarregarYaleFaces()
-    genetico = AlgoritmoGenetico(X, Y, TAM_POP)
-    solucao = genetico.executar(EPOCHS, TAXA)
+    Rs1 = []
+    for k in progressbar.progressbar(K):
+        print('\n[+] BASE YALE FACES')
+        print('\n[+] INICIANDO ALGORITMO GENETICO K = %s' %(str(k)))
+        genetico = AlgoritmoGenetico(X, Y, k, TAM_POP)
+        solucao = genetico.executar(EPOCHS, TAXA)
+        print('\n[+] FIM ALGORITMO GENETICO')
+        Rs1.append(solucao)
+    persistir(Rs1, 'genetico_yale.txt')
+    '''    
+    #experimento base: At&t
+    X, Y = CarregarAtt()
+    Rs2 = []
+    for k in progressbar.progressbar(K):
+        print('\n[+] BASE AT&T')
+        print('\n[+] INICIANDO ALGORITMO GENETICO K = %s' %(str(k)))
+        genetico = AlgoritmoGenetico(X, Y, k, TAM_POP)
+        solucao = genetico.executar(EPOCHS, TAXA)
+        print('\n[+] FIM ALGORITMO GENETICO')
+        Rs2.append(solucao)
+    persistir(Rs2, 'genetico_att.txt')
+    
+    #experimento base: Sheffield
+    X, Y = CarregarSheffield()
+    Rs3 = []
+    for k in progressbar.progressbar(K):
+        print('\n[+] BASE SHEFFIELD')
+        print('\n[+] INICIANDO ALGORITMO GENETICO K = %s' %(str(k)))
+        genetico = AlgoritmoGenetico(X, Y, k, TAM_POP)
+        solucao = genetico.executar(EPOCHS, TAXA)
+        print('\n[+] FIM ALGORITMO GENETICO')
+        Rs3.append(solucao)
+    persistir(Rs3, 'genetico_sheffield.txt')
+    
+    #resultado final: matriz 3x15x644
+    '''
