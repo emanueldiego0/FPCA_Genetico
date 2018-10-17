@@ -13,6 +13,7 @@ import cv2
 import warnings
 import random
 import progressbar
+import math
 from time import time
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import train_test_split
@@ -20,11 +21,14 @@ from sklearn.model_selection import train_test_split
 #constantes
 M = 644             #numero de features
 K = 70              #numero maximo de componentes
-HOLDOUT = 5        #rodadas
+HOLDOUT = 10        #rodadas
 TAXA = 0.01         #taxa de probabilidade de mutacao
-TAM_POP = 4         #qtde de individuos da populacao
-EPOCHS = 20         #numero de epocas
+TAM_POP = 8         #qtde de individuos da populacao
+EPOCHS = 50         #numero de epocas
 
+LINHAS = 3
+COLUNAS = 3
+L_C = LINHAS * COLUNAS
 
 def CarregarYaleFaces():
     files = glob.glob("databases/yalefaces/*")
@@ -92,13 +96,47 @@ def F_Eigenfaces(X, W, k, R):
     X__ = vec_c.T.dot((np.power(W, R) - np.power(mean, R)).T)
     return X_.T[:,:k], X__.T[:,:k]
 
+
+def generate_R(r, height, width, LINHAS, COLUNAS):
+    #M_ = np.random.rand(4)
+    #width = 23
+    #height = 28
+    r = np.array(r).reshape((LINHAS,COLUNAS))
+    
+    h = height // LINHAS
+    w = width // COLUNAS
+    
+    h_ = height % LINHAS
+    w_ = width % COLUNAS
+    
+    R = []
+    for i in range(LINHAS):
+        R_ = []
+        for j in range(COLUNAS):
+            if(j != COLUNAS-1):
+                R_.extend(w * [r[i][j]])
+            else:
+                R_.extend((w + w_) * [r[i][j]])
+        if(i != LINHAS-1):
+            R_ *= h
+        else:
+            R_ *= (h + h_)
+        R.extend(R_)
+        
+    return R
+
 #ALGORITMO GENETICO
 class Individuo():
     def __init__(self, X, Y):
         self.X = X
         self.Y = Y
-        cromossomo = np.random.rand(M) #/ 10   #vetor de tamanho M com valores no intervalo [0,1]
-        self.cromossomo = cromossomo.tolist()
+        
+        M = []
+        for i in range(L_C):
+            M.append(random.random() / 10)
+        #cromossomo = generate_R() #/ 10   #vetor de tamanho M com valores no intervalo [0,1]
+        self.cromossomo = M
+        #self.cromossomo = cromossomo.tolist()
         self.nota = 0
     
     
@@ -116,7 +154,7 @@ class Individuo():
                 X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.1, random_state= round(time()) + 15 * j)
                 
                 #aplicacao do FPCA
-                X_feig_train, X_feig_test = F_Eigenfaces(X_train, X_test, n_components, self.cromossomo)
+                X_feig_train, X_feig_test = F_Eigenfaces(X_train, X_test, n_components, generate_R(self.cromossomo))
                 
                 #avaliar acuracia usando 1-NN
                 clf_1nn = KNeighborsClassifier(n_neighbors=1).fit(X_feig_train, y_train)
@@ -143,7 +181,7 @@ class Individuo():
             X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.1, random_state= round(time()) + 15 * j)
                 
             #aplicacao do FPCA
-            X_feig_train, X_feig_test = F_Eigenfaces(X_train, X_test, n_components, self.cromossomo)
+            X_feig_train, X_feig_test = F_Eigenfaces(X_train, X_test, n_components, generate_R(self.cromossomo))
                 
             #avaliar acuracia usando 1-NN
             clf_1nn = KNeighborsClassifier(n_neighbors=1).fit(X_feig_train, y_train)
@@ -156,7 +194,7 @@ class Individuo():
     
     def crossover2(self, outro_individuo):
         
-        corte = random.randint(1,M)
+        corte = random.randint(1,4)
         
         filho1 = Individuo(self.X, self.Y)
         filho2 = Individuo(self.X, self.Y)
@@ -216,7 +254,7 @@ class Individuo():
     def mutacao(self, taxa):
         for i in range(len(self.cromossomo)):
             if random.random() < taxa:
-                self.cromossomo[i] = np.random.rand()
+                self.cromossomo[i] = random.random() / 10
         return self
 
 
@@ -314,7 +352,7 @@ class AlgoritmoGenetico():
         self.melhor_individuo(self.populacao[0])
         return self.melhor_solucao
 
-#funcoes para a persistencias dos resultados
+#funcoes para a persistencia dos resultados
 def persistir(individuos, filename):
     f = open(filename,'w')
     for i in individuos:
@@ -356,7 +394,7 @@ if __name__ == "__main__":
         print('\n[+] FIM ALGORITMO GENETICO')
         Rs1.append(solucao)
     persistir(Rs1, 'genetico_yale.txt')
-    '''    
+        
     #experimento base: At&t
     X, Y = CarregarAtt()
     Rs2 = []
@@ -382,4 +420,3 @@ if __name__ == "__main__":
     persistir(Rs3, 'genetico_sheffield.txt')
     
     #resultado final: matriz 3x15x644
-    '''
