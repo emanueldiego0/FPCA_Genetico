@@ -13,7 +13,7 @@ import cv2
 import warnings
 import random
 import progressbar
-import math
+import os
 from time import time
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import train_test_split
@@ -23,12 +23,68 @@ M = 644             #numero de features
 K = 70              #numero maximo de componentes
 HOLDOUT = 10        #rodadas
 TAXA = 0.01         #taxa de probabilidade de mutacao
-TAM_POP = 8         #qtde de individuos da populacao
-EPOCHS = 50         #numero de epocas
+TAM_POP = 4         #qtde de individuos da populacao
+EPOCHS = 10         #numero de epocas
 
 LINHAS = 3
 COLUNAS = 3
 L_C = LINHAS * COLUNAS
+
+os.chdir('C:\\Users\\EMANUEL\\Desktop\\PIC3\\FPCA_Genetico')
+
+def CarregarAR():
+    folders = glob.glob("databases/AR/*")
+    images_ar = []
+    Y = []
+    
+    for f in folders:
+        files = glob.glob(f+"/*")
+        #images = [np.array(imageio.mimread(file))[0] for file in files]
+        images = [cv2.imread(file,-1)[0] for file in files]
+        images_resized = [cv2.resize(image, dsize=(28, 23), interpolation=cv2.INTER_CUBIC) for image in images]
+        #mages_resized = np.array(images_resized)
+        images_flatten = [image.flatten() for image in images_resized]
+        #mages_flatten = np.array(images_flatten)
+        images_ar.extend(images_flatten)
+        Y.extend([f] * 26)
+    return np.array(images_ar), Y
+
+
+def CarregarGeorgiaTech():
+    folders = glob.glob("databases/georgia_tech/*")
+    images_georgia_tech = []
+    Y = []
+    
+    for f in folders:
+        files = glob.glob(f+"/*")
+        #images = [np.array(imageio.mimread(file))[0] for file in files]
+        images = [cv2.imread(file,-1)[0] for file in files]
+        images_resized = [cv2.resize(image, dsize=(28, 23), interpolation=cv2.INTER_CUBIC) for image in images]
+        #mages_resized = np.array(images_resized)
+        images_flatten = [image.flatten() for image in images_resized]
+        #mages_flatten = np.array(images_flatten)
+        images_georgia_tech.extend(images_flatten)
+        Y.extend([f] * 15)
+    return np.array(images_georgia_tech), Y
+
+
+def CarregarFaces95():
+    folders = glob.glob("databases/faces95/*")
+    images_faces95 = []
+    Y = []
+    
+    for f in folders:
+        files = glob.glob(f+"/*")
+        #images = [np.array(imageio.mimread(file))[0] for file in files]
+        images = [cv2.imread(file,-1)[0] for file in files]
+        images_resized = [cv2.resize(image, dsize=(28, 23), interpolation=cv2.INTER_CUBIC) for image in images]
+        #mages_resized = np.array(images_resized)
+        images_flatten = [image.flatten() for image in images_resized]
+        #mages_flatten = np.array(images_flatten)
+        images_faces95.extend(images_flatten)
+        Y.extend([f] * 20)
+    return np.array(images_faces95), Y
+
 
 def CarregarYaleFaces():
     files = glob.glob("databases/yalefaces/*")
@@ -97,10 +153,10 @@ def F_Eigenfaces(X, W, k, R):
     return X_.T[:,:k], X__.T[:,:k]
 
 
-def generate_R(r, height, width, LINHAS, COLUNAS):
+def generate_R(r, LINHAS, COLUNAS):
     #M_ = np.random.rand(4)
-    #width = 23
-    #height = 28
+    width = 23
+    height = 28
     r = np.array(r).reshape((LINHAS,COLUNAS))
     
     h = height // LINHAS
@@ -181,7 +237,7 @@ class Individuo():
             X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.1, random_state= round(time()) + 15 * j)
                 
             #aplicacao do FPCA
-            X_feig_train, X_feig_test = F_Eigenfaces(X_train, X_test, n_components, generate_R(self.cromossomo))
+            X_feig_train, X_feig_test = F_Eigenfaces(X_train, X_test, n_components, generate_R(self.cromossomo,3,3))
                 
             #avaliar acuracia usando 1-NN
             clf_1nn = KNeighborsClassifier(n_neighbors=1).fit(X_feig_train, y_train)
@@ -378,10 +434,31 @@ def ler(filename):
         
     return vetores
 
+def datasets():
+    
+    print('AR = {0}'.format(len(CarregarAR()[0])))
+    print('Faces95 = {0}'.format(len(CarregarFaces95()[0])))
+    print('Georgia Tech = {0}'.format(len(CarregarGeorgiaTech()[0])))
+    print('Yale = {0}'.format(len(CarregarYaleFaces()[0])))
+    print('AT&T = {0}'.format(len(CarregarAtt()[0])))
+    print('Sheffield = {0}'.format(len(CarregarSheffield()[0])))
+    
 #funcao main        
 if __name__ == "__main__":
     warnings.filterwarnings('ignore')
     K = [1,5,10,15,20,25,30,35,40,45,50,55,60,65,70]
+    
+    #experimento base: Georgia Tech
+    X, Y = CarregarGeorgiaTech()
+    Rs1 = []
+    for k in progressbar.progressbar(K):
+        print('\n[+] BASE GEORGIA TECH')
+        print('\n[+] INICIANDO ALGORITMO GENETICO K = %s' %(str(k)))
+        genetico = AlgoritmoGenetico(X, Y, k, TAM_POP)
+        solucao = genetico.executar(EPOCHS, TAXA)
+        print('\n[+] FIM ALGORITMO GENETICO')
+        Rs1.append(solucao)
+    persistir(Rs1, 'genetico_georgia_tech.txt')
     
     #experimento base: Yale Faces
     X, Y = CarregarYaleFaces()
@@ -418,5 +495,29 @@ if __name__ == "__main__":
         print('\n[+] FIM ALGORITMO GENETICO')
         Rs3.append(solucao)
     persistir(Rs3, 'genetico_sheffield.txt')
+    
+    #experimento base: AR
+    X, Y = CarregarAR()
+    Rs1 = []
+    for k in progressbar.progressbar(K):
+        print('\n[+] BASE AR')
+        print('\n[+] INICIANDO ALGORITMO GENETICO K = %s' %(str(k)))
+        genetico = AlgoritmoGenetico(X, Y, k, TAM_POP)
+        solucao = genetico.executar(EPOCHS, TAXA)
+        print('\n[+] FIM ALGORITMO GENETICO')
+        Rs1.append(solucao)
+    persistir(Rs1, 'genetico_ar.txt')
+    
+    #experimento base: Faces 95
+    X, Y = CarregarFaces95()
+    Rs1 = []
+    for k in progressbar.progressbar(K):
+        print('\n[+] BASE FACES 95')
+        print('\n[+] INICIANDO ALGORITMO GENETICO K = %s' %(str(k)))
+        genetico = AlgoritmoGenetico(X, Y, k, TAM_POP)
+        solucao = genetico.executar(EPOCHS, TAXA)
+        print('\n[+] FIM ALGORITMO GENETICO')
+        Rs1.append(solucao)
+    persistir(Rs1, 'genetico_faces95.txt')
     
     #resultado final: matriz 3x15x644
