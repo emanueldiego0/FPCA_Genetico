@@ -239,7 +239,7 @@ class Individuo():
             X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.1, random_state= round(time()) + 15 * j)
                 
             #aplicacao do FPCA
-            X_feig_train, X_feig_test = F_Eigenfaces(X_train, X_test, n_components, generate_R(self.cromossomo,3,3))
+            X_feig_train, X_feig_test = F_Eigenfaces(X_train, X_test, n_components, generate_R(self.cromossomo,LINHAS,COLUNAS))
                 
             #avaliar acuracia usando 1-NN
             clf_1nn = KNeighborsClassifier(n_neighbors=1).fit(X_feig_train, y_train)
