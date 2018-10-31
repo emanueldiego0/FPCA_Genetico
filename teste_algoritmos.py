@@ -83,45 +83,57 @@ def testeWilcoxon(acc1, acc2):
 
 
 if __name__ == "__main__":
-    classificador1 = ("nome","acuracias1.txt")
-    classificador2 = ("nome","acuracias2.txt")
     
-    acc_classificador1 = np.genfromtxt(classificador1[1], delimiter=',')
-    acc_classificador2 = np.genfromtxt(classificador2[1], delimiter=',')
+    datasets = ['ar', 'att', 'faces95', 'georgia_tech', 'sheffield', 'yale_faces']
     
-    taxa = 1.96
     
-    #intervalos de confianca
-    int1 = st.t.interval(0.95, len(acc_classificador1)-1, loc=np.mean(acc_classificador1), scale=st.sem(acc_classificador1))
-    int2 = st.t.interval(0.95, len(acc_classificador2)-1, loc=np.mean(acc_classificador2), scale=st.sem(acc_classificador2))
-
+    for d in datasets:
+        print('\nDATASET: '+d)
+        file1 = 'acc\\'+'acc_'+d+'_eigenfaces.csv'
+        file2 = 'acc\\'+'acc_'+d+'_eigenfaces_proposed.csv'
+        
+        classificador1 = ("Eigenfaces",file1)
+        classificador2 = ("Eigenfaces Proposto",file2)
     
-    print('\nTESTES DE HIPOSTESE (95% de confianca):')
-    print('[+] Teste de Sobreposicao: ')
-    if(testeSobreposicao(int1, int2)):
-        print('H0 nao rejeitada. Concluimos que os classificadores tem desempenhos iguais')
-    else:
-        print('H0 rejeitada. Concluimos que os calssificadores nao sao iguais em desempenho')
-        if(acc_classificador1.mean() > acc_classificador2.mean()):
-            print('{0} eh melhor para essa base'.format(classificador1[0]))
+        acc_classificador1 = np.genfromtxt(classificador1[1], delimiter=',')
+        acc_classificador2 = np.genfromtxt(classificador2[1], delimiter=',')
+        
+        taxa = 1.96
+        
+        #intervalos de confianca
+        int1 = st.t.interval(0.95, len(acc_classificador1)-1, loc=np.mean(acc_classificador1), scale=st.sem(acc_classificador1))
+        int2 = st.t.interval(0.95, len(acc_classificador2)-1, loc=np.mean(acc_classificador2), scale=st.sem(acc_classificador2))
+    
+        
+        print('\nTESTES DE HIPOSTESE (95% de confianca):')
+        print('[+] Teste de Sobreposicao: ')
+        if(testeSobreposicao(int1, int2)):
+            print('H0 nao rejeitada. Concluimos que os classificadores tem desempenhos iguais')
         else:
-            print('{0} eh melhor para essa base'.format(classificador2[0]))
-
-    print('[+] Teste de Diferenca das Medias: ')
-    if(testeDiferencasMedias(int1, int2)[0]):
-        print('H0 nao rejeitada. Concluimos que os classificadores tem desempenhos iguais')
-    else:
-        print('H0 rejeitada. Concluimos que os calssificadores nao sao iguais em desempenho')
-        if(acc_classificador1.mean() > acc_classificador2.mean()):
-            print('{0} eh melhor para essa base'.format(classificador1[0]))
+            print('H0 rejeitada. Concluimos que os calssificadores nao sao iguais em desempenho')
+            if(acc_classificador1.mean() > acc_classificador2.mean()):
+                print('{0} eh melhor para essa base'.format(classificador1[0]))
+            else:
+                print('{0} eh melhor para essa base'.format(classificador2[0]))
+    
+        print('[+] Teste de Diferenca das Medias: ')
+        if(testeDiferencasMedias(int1, int2)[0]):
+            print('H0 nao rejeitada. Concluimos que os classificadores tem desempenhos iguais')
         else:
-            print('{0} eh melhor para essa base'.format(classificador2[0]))
+            print('H0 rejeitada. Concluimos que os calssificadores nao sao iguais em desempenho')
+            if(acc_classificador1.mean() > acc_classificador2.mean()):
+                print('{0} eh melhor para essa base'.format(classificador1[0]))
+            else:
+                print('{0} eh melhor para essa base'.format(classificador2[0]))
+                
+        print('[+] Teste de Wilcoxon: ')
+        
+        if(testeWilcoxon(acc_classificador1, acc_classificador2) > taxa):
+            print('H0 rejeitada. Concluimos que os calssificadores nao sao iguais em desempenho')
+            if(acc_classificador1.mean() > acc_classificador2.mean()):
+                print('{0} eh melhor para essa base'.format(classificador1[0]))
+            else:
+                print('{0} eh melhor para essa base'.format(classificador2[0]))
+        else:
+            print('H0 nao rejeitada. Concluimos que os classificadores tem desempenhos iguais')
             
-    print('[+] Teste de Wilcoxon: ')
-    if(testeWilcoxon(acc_classificador1, acc_classificador2) > taxa):
-        if(acc_classificador1.mean() > acc_classificador2.mean()):
-            print('{0} eh melhor para essa base'.format(classificador1[0]))
-        else:
-            print('{0} eh melhor para essa base'.format(classificador2[0]))
-    else:
-        print('H0 nao rejeitada. Concluimos que os classificadores tem desempenhos iguais')

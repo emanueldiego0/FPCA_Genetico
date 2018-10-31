@@ -24,13 +24,15 @@ K = 70              #numero maximo de componentes
 HOLDOUT = 10        #rodadas
 TAXA = 0.01         #taxa de probabilidade de mutacao
 TAM_POP = 4         #qtde de individuos da populacao
-EPOCHS = 10         #numero de epocas
+EPOCHS = 3          #numero de epocas
 
 LINHAS = 3
 COLUNAS = 3
 L_C = LINHAS * COLUNAS
 
-os.chdir('C:\\Users\\EMANUEL\\Desktop\\PIC3\\FPCA_Genetico')
+ID_experimento = 1
+experimento_folder = 'Experimento'+str(ID_experimento)
+os.chdir('C:\\Users\\ADM\\Desktop\\PIC\\FPCA_Genetico\\FPCA_Genetico\\)
 
 def CarregarAR():
     folders = glob.glob("databases/AR/*")
@@ -458,7 +460,7 @@ if __name__ == "__main__":
         solucao = genetico.executar(EPOCHS, TAXA)
         print('\n[+] FIM ALGORITMO GENETICO')
         Rs1.append(solucao)
-    persistir(Rs1, 'genetico_georgia_tech.txt')
+    persistir(Rs1, experimento_folder+'\\genetico\\genetico_georgia_tech.txt')
     
     #experimento base: Yale Faces
     X, Y = CarregarYaleFaces()
@@ -470,7 +472,7 @@ if __name__ == "__main__":
         solucao = genetico.executar(EPOCHS, TAXA)
         print('\n[+] FIM ALGORITMO GENETICO')
         Rs1.append(solucao)
-    persistir(Rs1, 'genetico_yale.txt')
+    persistir(Rs1, experimento_folder+'\\genetico\\genetico_yale.txt')
         
     #experimento base: At&t
     X, Y = CarregarAtt()
@@ -482,7 +484,7 @@ if __name__ == "__main__":
         solucao = genetico.executar(EPOCHS, TAXA)
         print('\n[+] FIM ALGORITMO GENETICO')
         Rs2.append(solucao)
-    persistir(Rs2, 'genetico_att.txt')
+    persistir(Rs2, experimento_folder+'\\genetico\\genetico_att.txt')
     
     #experimento base: Sheffield
     X, Y = CarregarSheffield()
@@ -494,7 +496,7 @@ if __name__ == "__main__":
         solucao = genetico.executar(EPOCHS, TAXA)
         print('\n[+] FIM ALGORITMO GENETICO')
         Rs3.append(solucao)
-    persistir(Rs3, 'genetico_sheffield.txt')
+    persistir(Rs3, experimento_folder+'\\genetico\\genetico_sheffield.txt')
     
     #experimento base: AR
     X, Y = CarregarAR()
@@ -506,7 +508,7 @@ if __name__ == "__main__":
         solucao = genetico.executar(EPOCHS, TAXA)
         print('\n[+] FIM ALGORITMO GENETICO')
         Rs1.append(solucao)
-    persistir(Rs1, 'genetico_ar.txt')
+    persistir(Rs1, experimento_folder+'\\genetico\\genetico_ar.txt')
     
     #experimento base: Faces 95
     X, Y = CarregarFaces95()
@@ -518,6 +520,6 @@ if __name__ == "__main__":
         solucao = genetico.executar(EPOCHS, TAXA)
         print('\n[+] FIM ALGORITMO GENETICO')
         Rs1.append(solucao)
-    persistir(Rs1, 'genetico_faces95.txt')
+    persistir(Rs1, experimento_folder+'\\genetico\\genetico_faces95.txt')
     
     #resultado final: matriz 3x15x644
